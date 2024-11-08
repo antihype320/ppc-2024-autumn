@@ -90,8 +90,8 @@ bool TestMPITaskSequential::post_processing() {
 
   return true;
 }
-double TestMPITaskParallel::parallel_integrate(
-    const std::function<double(double)>& f, double left_, double right_, int n, const boost::mpi::communicator& world) {
+double TestMPITaskParallel::parallel_integrate(const std::function<double(double)>& f, double left_, double right_,
+                                               int n, const boost::mpi::communicator& world) {
   double step = (right_ - left_) / n;
   double local_area = 0.0;
   int local_n = n / world.size();
