@@ -1,9 +1,9 @@
-// Copyright 2023 Nesterov Alexander
 #include "mpi/prokhorov_n_integral_rectangle_method/include/ops_mpi.hpp"
 
 #include <boost/mpi/collectives.hpp>
 #include <boost/mpi/communicator.hpp>
 #include <functional>
+#include <iostream>
 #include <numeric>
 #include <random>
 #include <vector>
@@ -90,6 +90,7 @@ bool TestMPITaskSequential::post_processing() {
 
   return true;
 }
+
 double TestMPITaskParallel::parallel_integrate(const std::function<double(double)>& f, double left_, double right_,
                                                int n, const boost::mpi::communicator& world) {
   double step = (right_ - left_) / n;
