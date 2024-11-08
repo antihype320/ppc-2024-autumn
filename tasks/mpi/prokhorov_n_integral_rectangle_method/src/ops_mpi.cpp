@@ -90,31 +90,24 @@ bool TestMPITaskSequential::post_processing() {
 
   return true;
 }
-double TestMPITaskParallel::parallel_integrate(const std::function<double(double)>& f, double left_, double right_,
-                                               int n, const boost::mpi::communicator& world) {
-  double range = right_ - left_;
-  double step = range / n;
-
+double TestMPITaskParallel::parallel_integrate(
+    const std::function<double(double)>& f, double left_, double right_, int n, const boost::mpi::communicator& world) {
+  double step = (right_ - left_) / n;
+  double local_area = 0.0;
   int local_n = n / world.size();
   int start = world.rank() * local_n;
-  int end = start + local_n;
+  int end = (world.rank() + 1) * local_n;
 
-  if (world.rank() == world.size() - 1) {
+  if (end > n) {
     end = n;
   }
 
-  double local_result = 0.0;
   for (int i = start; i < end; ++i) {
     double x = left_ + (i + 0.5) * step;
-    local_result += f(x) * step;
+    local_area += f(x) * step;
   }
 
-  double global_result;
-  boost::mpi::reduce(world, local_result, global_result, std::plus<double>(), 0);
-
-  boost::mpi::broadcast(world, global_result, 0);
-
-  return global_result;
+  return local_area;
 }
 
 void TestMPITaskParallel::set_function(const std::function<double(double)>& func) { func_ = func; }
@@ -171,11 +164,16 @@ bool TestMPITaskParallel::validation() {
 
 bool TestMPITaskParallel::run() {
   internal_order_test();
+
+  if (n <= 0) {
+    std::cerr << "Invalid number of intervals." << std::endl;
+    return false;
+  }
+
   local_res = parallel_integrate(func_, left_, right_, n, world);
 
-  if (world.rank() == 0) {
-    global_res = local_res;
-  }
+  boost::mpi::all_reduce(world, local_res, global_res, std::plus<double>());
+
   return true;
 }
 
