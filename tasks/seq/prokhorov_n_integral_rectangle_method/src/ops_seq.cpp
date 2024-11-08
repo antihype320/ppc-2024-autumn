@@ -59,11 +59,6 @@ bool prokhorov_n_integral_rectangle_method::TestTaskSequential::run() {
 bool prokhorov_n_integral_rectangle_method::TestTaskSequential::post_processing() {
   internal_order_test();
 
-  if (std::isnan(res) || std::isinf(res)) {
-    std::cerr << "Error: Integration result is not a valid number. Cannot proceed with post-processing." << std::endl;
-    return false;
-  }
-
   if (taskData->outputs_count[0] != 1) {
     std::cerr << "Error: Incorrect number of outputs. Expected 1, got " << taskData->outputs_count[0] << std::endl;
     return false;
