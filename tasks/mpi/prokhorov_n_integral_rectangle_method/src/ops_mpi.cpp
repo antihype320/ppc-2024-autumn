@@ -113,7 +113,7 @@ double TestMPITaskParallel::parallel_integrate(const std::function<double(double
 
 void TestMPITaskParallel::set_function(const std::function<double(double)>& func) { func_ = func; }
 
-bool prokhorov_n_integral_rectangle_method_mpi::TestMPITaskParallel::pre_processing() {
+bool TestMPITaskParallel::pre_processing() {
   internal_order_test();
 
   if (taskData->inputs_count[0] != 3) {
@@ -122,6 +122,11 @@ bool prokhorov_n_integral_rectangle_method_mpi::TestMPITaskParallel::pre_process
   }
 
   uint8_t* inputs_raw = taskData->inputs[0];
+  if (inputs_raw == nullptr) {
+    std::cerr << "Input data is nullptr." << std::endl;
+    return false;
+  }
+
   std::vector<double> inputs(reinterpret_cast<double*>(inputs_raw), reinterpret_cast<double*>(inputs_raw) + 3);
 
   left_ = inputs[0];
