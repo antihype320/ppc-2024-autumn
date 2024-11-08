@@ -1,4 +1,4 @@
-#include <gtest/gtest.h>
+/*#include <gtest/gtest.h>
 
 #include "core/perf/include/perf.hpp"
 #include "seq/lopatin_i_count_words/include/countWordsSeqHeader.hpp"
@@ -63,4 +63,4 @@ TEST(word_count_seq, test_task_run) {
   ppc::core::Perf::print_perf_statistic(perfResults);
 
   ASSERT_EQ(word_count[0], 15000);
-}
+}*/

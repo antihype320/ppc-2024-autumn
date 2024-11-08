@@ -1,5 +1,5 @@
-#define _USE_MATH_DEFINES
 // Copyright 2023 Nesterov Alexander
+#define _USE_MATH_DEFINES
 #include <gtest/gtest.h>
 
 #include <cmath>
@@ -13,7 +13,7 @@ TEST(prokhorov_n_integral_rectangle_method, test_integration) {
   const double left = 0.0;
   const double right = 1.0;
   const int n = 1000;
-  const double expected_result = 1.0;  
+  const double expected_result = 1.0;
 
   std::vector<double> in = {left, right, static_cast<double>(n)};
   std::vector<double> out(1, 0.0);
@@ -50,7 +50,7 @@ TEST(prokhorov_n_integral_rectangle_method, test_integration_with_function) {
   const double left = 0.0;
   const double right = 1.0;
   const int n = 1000;
-  const double expected_result = 0.5; 
+  const double expected_result = 0.5;
 
   std::vector<double> in = {left, right, static_cast<double>(n)};
   std::vector<double> out(1, 0.0);
@@ -86,7 +86,7 @@ TEST(prokhorov_n_integral_rectangle_method, test_integration_x_squared) {
   const double left = 0.0;
   const double right = 1.0;
   const int n = 1000;
-  const double expected_result = 1.0 / 3.0; 
+  const double expected_result = 1.0 / 3.0;
 
   std::vector<double> in = {left, right, static_cast<double>(n)};
   std::vector<double> out(1, 0.0);
@@ -123,7 +123,7 @@ TEST(prokhorov_n_integral_rectangle_method, test_integration_sin) {
   const double left = 0.0;
   const double right = M_PI;
   const int n = 1000;
-  const double expected_result = 2.0; 
+  const double expected_result = 2.0;
 
   std::vector<double> in = {left, right, static_cast<double>(n)};
   std::vector<double> out(1, 0.0);
@@ -160,8 +160,7 @@ TEST(prokhorov_n_integral_rectangle_method, test_integration_exp) {
   const double left = 0.0;
   const double right = 1.0;
   const int n = 1000;
-  const double expected_result =
-      std::exp(1.0) - 1.0;  
+  const double expected_result = std::exp(1.0) - 1.0;
 
   std::vector<double> in = {left, right, static_cast<double>(n)};
   std::vector<double> out(1, 0.0);
@@ -193,4 +192,3 @@ TEST(prokhorov_n_integral_rectangle_method, test_integration_exp) {
 
   ASSERT_NEAR(out[0], expected_result, 1e-3);
 }
-

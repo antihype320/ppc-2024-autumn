@@ -166,3 +166,59 @@ TEST(prokhorov_n_integral_rectangle_method_mpi, Test_Reciprocal_Square_Plus_One)
     ASSERT_NEAR(global_result[0], M_PI / 4, 1e-5);
   }
 }
+TEST(prokhorov_n_integral_rectangle_method_mpi, Test_Exponential) {
+  boost::mpi::communicator world;
+  std::vector<double> global_input(3);
+  std::vector<double> global_result(1, 0.0);
+
+  std::shared_ptr<ppc::core::TaskData> taskDataPar = std::make_shared<ppc::core::TaskData>();
+
+  if (world.rank() == 0) {
+    global_input[0] = 0.0;
+    global_input[1] = 1.0;
+    global_input[2] = 1000;
+    taskDataPar->inputs.emplace_back(reinterpret_cast<uint8_t*>(global_input.data()));
+    taskDataPar->inputs_count.emplace_back(global_input.size());
+    taskDataPar->outputs.emplace_back(reinterpret_cast<uint8_t*>(global_result.data()));
+    taskDataPar->outputs_count.emplace_back(global_result.size());
+  }
+
+  prokhorov_n_integral_rectangle_method_mpi::TestMPITaskParallel testMpiTaskParallel(taskDataPar);
+  testMpiTaskParallel.set_function([](double x) { return std::exp(x); });
+  ASSERT_EQ(testMpiTaskParallel.validation(), true);
+  testMpiTaskParallel.pre_processing();
+  testMpiTaskParallel.run();
+  testMpiTaskParallel.post_processing();
+
+  if (world.rank() == 0) {
+    ASSERT_NEAR(global_result[0], std::exp(1.0) - 1.0, 1e-5);
+  }
+}
+TEST(prokhorov_n_integral_rectangle_method_mpi, Test_SquareRoot) {
+  boost::mpi::communicator world;
+  std::vector<double> global_input(3);
+  std::vector<double> global_result(1, 0.0);
+
+  std::shared_ptr<ppc::core::TaskData> taskDataPar = std::make_shared<ppc::core::TaskData>();
+
+  if (world.rank() == 0) {
+    global_input[0] = 0.0;
+    global_input[1] = 1.0;
+    global_input[2] = 1000;
+    taskDataPar->inputs.emplace_back(reinterpret_cast<uint8_t*>(global_input.data()));
+    taskDataPar->inputs_count.emplace_back(global_input.size());
+    taskDataPar->outputs.emplace_back(reinterpret_cast<uint8_t*>(global_result.data()));
+    taskDataPar->outputs_count.emplace_back(global_result.size());
+  }
+
+  prokhorov_n_integral_rectangle_method_mpi::TestMPITaskParallel testMpiTaskParallel(taskDataPar);
+  testMpiTaskParallel.set_function([](double x) { return std::sqrt(x); });
+  ASSERT_EQ(testMpiTaskParallel.validation(), true);
+  testMpiTaskParallel.pre_processing();
+  testMpiTaskParallel.run();
+  testMpiTaskParallel.post_processing();
+
+  if (world.rank() == 0) {
+    ASSERT_NEAR(global_result[0], 2.0 / 3.0, 1e-5);
+  }
+}

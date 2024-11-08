@@ -1,9 +1,9 @@
 // Copyright 2023 Nesterov Alexander
 #pragma once
 
+#include <functional>
 #include <string>
 #include <vector>
-#include <functional>
 
 #include "core/task/include/task.hpp"
 
@@ -18,6 +18,9 @@ class TestTaskSequential : public ppc::core::Task {
   bool post_processing() override;
 
   void set_function(const std::function<double(double)>& func);
+  void set_boundaries(double left, double right);
+  void set_num_steps(int steps);
+
  private:
   static double integrate(const std::function<double(double)>& f, double left_, double right_, int n);
 

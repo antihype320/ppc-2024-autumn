@@ -8,23 +8,21 @@
 #include <random>
 #include <vector>
 
-
 namespace prokhorov_n_integral_rectangle_method_mpi {
 
-// Определение функции интегрирования для последовательного варианта
 double TestMPITaskSequential::integrate(const std::function<double(double)>& f, double left_, double right_, int n) {
   double step = (right_ - left_) / n;
-  double area = 0.0;
+
+  std::vector<double> areas(n);
 
   for (int i = 0; i < n; ++i) {
     double x = left_ + (i + 0.5) * step;
-    area += f(x) * step;
+    areas[i] = f(x) * step;
   }
 
-  return area;
+  return std::accumulate(areas.begin(), areas.end(), 0.0);
 }
 
-// Определение функции set_function
 void TestMPITaskSequential::set_function(const std::function<double(double)>& func) { func_ = func; }
 
 bool TestMPITaskSequential::pre_processing() {
@@ -40,7 +38,28 @@ bool TestMPITaskSequential::pre_processing() {
 
 bool TestMPITaskSequential::validation() {
   internal_order_test();
-  return taskData->inputs_count[0] == 3 && taskData->outputs_count[0] == 1;
+  if (taskData->inputs_count[0] != 3) {
+    std::cerr << "Error: Incorrect number of inputs. Expected 3, got " << taskData->inputs_count[0] << std::endl;
+    return false;
+  }
+
+  if (taskData->outputs_count[0] != 1) {
+    std::cerr << "Error: Incorrect number of outputs. Expected 1, got " << taskData->outputs_count[0] << std::endl;
+    return false;
+  }
+
+  auto inputs = reinterpret_cast<double*>(taskData->inputs[0]);
+  if (inputs[0] >= inputs[1]) {
+    std::cerr << "Error: Left boundary must be less than right boundary." << std::endl;
+    return false;
+  }
+
+  if (static_cast<int>(inputs[2]) <= 0) {
+    std::cerr << "Error: Number of intervals must be greater than 0." << std::endl;
+    return false;
+  }
+
+  return true;
 }
 
 bool TestMPITaskSequential::run() {
@@ -51,11 +70,26 @@ bool TestMPITaskSequential::run() {
 
 bool TestMPITaskSequential::post_processing() {
   internal_order_test();
-  reinterpret_cast<double*>(taskData->outputs[0])[0] = res;
+
+  if (std::isnan(res) || std::isinf(res)) {
+    std::cerr << "Error: Integration result is not a valid number. Cannot proceed with post-processing." << std::endl;
+    return false;
+  }
+
+  if (taskData->outputs_count[0] != 1) {
+    std::cerr << "Error: Incorrect number of outputs. Expected 1, got " << taskData->outputs_count[0] << std::endl;
+    return false;
+  }
+
+  try {
+    reinterpret_cast<double*>(taskData->outputs[0])[0] = res;
+  } catch (const std::exception& e) {
+    std::cerr << "Error during post-processing: " << e.what() << std::endl;
+    return false;
+  }
+
   return true;
 }
-
-// Определение функции параллельного интегрирования с использованием MPI
 double TestMPITaskParallel::parallel_integrate(const std::function<double(double)>& f, double left_, double right_,
                                                int n, const boost::mpi::communicator& world) {
   double range = right_ - left_;
@@ -65,28 +99,24 @@ double TestMPITaskParallel::parallel_integrate(const std::function<double(double
   int start = world.rank() * local_n;
   int end = start + local_n;
 
-  // Учитываем остаток для последнего процесса
   if (world.rank() == world.size() - 1) {
     end = n;
   }
 
   double local_result = 0.0;
   for (int i = start; i < end; ++i) {
-    double x = left_ + (i + 0.5) * step;  // Центр каждого подотрезка
+    double x = left_ + (i + 0.5) * step;
     local_result += f(x) * step;
   }
 
   double global_result;
   boost::mpi::reduce(world, local_result, global_result, std::plus<double>(), 0);
 
-  // Раздаём результат всем процессам
   boost::mpi::broadcast(world, global_result, 0);
 
   return global_result;
 }
 
-
-// Определение функции set_function для параллельной задачи
 void TestMPITaskParallel::set_function(const std::function<double(double)>& func) { func_ = func; }
 
 bool TestMPITaskParallel::pre_processing() {
@@ -95,9 +125,7 @@ bool TestMPITaskParallel::pre_processing() {
   left_ = inputs[0];
   right_ = inputs[1];
   n = static_cast<int>(inputs[2]);
-  
 
-  // Broadcasting variables to all processes
   boost::mpi::broadcast(world, left_, 0);
   boost::mpi::broadcast(world, right_, 0);
   boost::mpi::broadcast(world, n, 0);
@@ -108,9 +136,36 @@ bool TestMPITaskParallel::pre_processing() {
 
 bool TestMPITaskParallel::validation() {
   internal_order_test();
-  if (world.rank() == 0) {
-    return taskData->outputs_count[0] == 1;
+
+  if (taskData->inputs_count[0] != 3) {
+    if (world.rank() == 0) {
+      std::cerr << "Error: Incorrect number of inputs. Expected 3, got " << taskData->inputs_count[0] << std::endl;
+    }
+    return false;
   }
+
+  if (taskData->outputs_count[0] != 1) {
+    if (world.rank() == 0) {
+      std::cerr << "Error: Incorrect number of outputs. Expected 1, got " << taskData->outputs_count[0] << std::endl;
+    }
+    return false;
+  }
+
+  auto inputs = reinterpret_cast<double*>(taskData->inputs[0]);
+  if (inputs[0] >= inputs[1]) {
+    if (world.rank() == 0) {
+      std::cerr << "Error: Left boundary must be less than right boundary." << std::endl;
+    }
+    return false;
+  }
+
+  if (static_cast<int>(inputs[2]) <= 0) {
+    if (world.rank() == 0) {
+      std::cerr << "Error: Number of intervals must be greater than 0." << std::endl;
+    }
+    return false;
+  }
+
   return true;
 }
 
@@ -126,9 +181,26 @@ bool TestMPITaskParallel::run() {
 
 bool TestMPITaskParallel::post_processing() {
   internal_order_test();
-  if (world.rank() == 0) {
-    reinterpret_cast<double*>(taskData->outputs[0])[0] = global_res;
+
+  if (std::isnan(global_res) || std::isinf(global_res)) {
+    std::cerr << "Error: Integration result is not a valid number. Cannot proceed with post-processing." << std::endl;
+    return false;
   }
+
+  if (world.rank() == 0 && taskData->outputs_count[0] != 1) {
+    std::cerr << "Error: Incorrect number of outputs. Expected 1, got " << taskData->outputs_count[0] << std::endl;
+    return false;
+  }
+
+  if (world.rank() == 0) {
+    try {
+      reinterpret_cast<double*>(taskData->outputs[0])[0] = global_res;
+    } catch (const std::exception& e) {
+      std::cerr << "Error during post-processing: " << e.what() << std::endl;
+      return false;
+    }
+  }
+
   return true;
 }
 
