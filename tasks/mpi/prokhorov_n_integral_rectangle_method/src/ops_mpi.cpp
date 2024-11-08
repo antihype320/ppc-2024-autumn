@@ -112,18 +112,24 @@ double TestMPITaskParallel::parallel_integrate(const std::function<double(double
 
 void TestMPITaskParallel::set_function(const std::function<double(double)>& func) { func_ = func; }
 
-bool TestMPITaskParallel::pre_processing() {
+bool prokhorov_n_integral_rectangle_method_mpi::TestMPITaskParallel::pre_processing() {
   internal_order_test();
-  auto* inputs = reinterpret_cast<double*>(taskData->inputs[0]);
+
+  if (taskData->inputs_count[0] != 3) {
+    std::cerr << "Invalid input count." << std::endl;
+    return false;
+  }
+
+  uint8_t* inputs_raw = taskData->inputs[0];
+  std::vector<double> inputs(reinterpret_cast<double*>(inputs_raw), reinterpret_cast<double*>(inputs_raw) + 3);
+
   left_ = inputs[0];
   right_ = inputs[1];
   n = static_cast<int>(inputs[2]);
 
-  boost::mpi::broadcast(world, left_, 0);
-  boost::mpi::broadcast(world, right_, 0);
-  boost::mpi::broadcast(world, n, 0);
-
+  local_res = 0.0;
   global_res = 0.0;
+
   return true;
 }
 
@@ -177,28 +183,15 @@ bool TestMPITaskParallel::run() {
   return true;
 }
 
-bool TestMPITaskParallel::post_processing() {
+bool prokhorov_n_integral_rectangle_method_mpi::TestMPITaskParallel::post_processing() {
   internal_order_test();
 
-  if (std::isnan(global_res) || std::isinf(global_res)) {
-    std::cerr << "Error: Integration result is not a valid number. Cannot proceed with post-processing." << std::endl;
+  if (taskData->outputs_count[0] != 1) {
+    std::cerr << "Invalid output count." << std::endl;
     return false;
   }
 
-  if (world.rank() == 0 && taskData->outputs_count[0] != 1) {
-    std::cerr << "Error: Incorrect number of outputs. Expected 1, got " << taskData->outputs_count[0] << std::endl;
-    return false;
-  }
-
-  if (world.rank() == 0) {
-    try {
-      reinterpret_cast<double*>(taskData->outputs[0])[0] = global_res;
-    } catch (const std::exception& e) {
-      std::cerr << "Error during post-processing: " << e.what() << std::endl;
-      return false;
-    }
-  }
-
+  reinterpret_cast<double*>(taskData->outputs[0])[0] = global_res;
   return true;
 }
 
